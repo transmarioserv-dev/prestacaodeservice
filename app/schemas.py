@@ -1,6 +1,19 @@
 from pydantic import BaseModel
 from typing import Optional, List
-from datetime import date
+from datetime import date, datetime
+
+# Shipment History Schemas
+class ShipmentHistoryBase(BaseModel):
+    status: str
+    timestamp: datetime
+    notes: Optional[str] = None
+
+class ShipmentHistory(ShipmentHistoryBase):
+    id: int
+    shipment_id: int
+
+    class Config:
+        from_attributes = True
 
 # Vehicle Schemas
 class VehicleBase(BaseModel):
@@ -42,7 +55,7 @@ class Driver(DriverBase):
 # Shipment Schemas
 class ShipmentBase(BaseModel):
     tracking_code: str
-    description: str
+    description: Optional[str] = None
     weight: float
     origin: str
     destination: str
@@ -56,6 +69,7 @@ class ShipmentCreate(ShipmentBase):
 
 class Shipment(ShipmentBase):
     id: int
+    history: List[ShipmentHistory] = []
 
     class Config:
         from_attributes = True

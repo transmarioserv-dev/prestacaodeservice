@@ -83,7 +83,7 @@ def ui_shipments(request: Request, db: Session = Depends(get_db)):
 
 @app.post("/ui/shipments")
 def ui_create_shipment(
-    tracking_code: str = Form(...), description: str = Form(...), weight: float = Form(...),
+    tracking_code: str = Form(...), description: str = Form(None), weight: float = Form(...),
     origin: str = Form(...), destination: str = Form(...), shipping_value: float = Form(...),
     status: str = Form(...), vehicle_id: int = Form(None), driver_id: int = Form(None),
     db: Session = Depends(get_db)
@@ -94,6 +94,15 @@ def ui_create_shipment(
         status=status, vehicle_id=vehicle_id, driver_id=driver_id
     )
     db.add(db_shipment)
+    db.commit()
+    # Add initial history entry
+    db.refresh(db_shipment)
+    history = models.ShipmentHistory(
+        shipment_id=db_shipment.id,
+        status=status,
+        notes="Registro inicial da entrega"
+    )
+    db.add(history)
     db.commit()
     return RedirectResponse(url="/ui/shipments", status_code=303)
 
@@ -250,13 +259,14 @@ def ui_delete_driver(driver_id: int, db: Session = Depends(get_db)):
 @app.post("/ui/shipments/{shipment_id}/update")
 def ui_update_shipment(
     shipment_id: int,
-    tracking_code: str = Form(...), description: str = Form(...), weight: float = Form(...),
+    tracking_code: str = Form(...), description: str = Form(None), weight: float = Form(...),
     origin: str = Form(...), destination: str = Form(...), shipping_value: float = Form(...),
     status: str = Form(...), vehicle_id: int = Form(None), driver_id: int = Form(None),
     db: Session = Depends(get_db)
 ):
     db_shipment = db.query(models.Shipment).filter(models.Shipment.id == shipment_id).first()
     if db_shipment:
+        old_status = db_shipment.status
         db_shipment.tracking_code = tracking_code
         db_shipment.description = description
         db_shipment.weight = weight
@@ -266,6 +276,16 @@ def ui_update_shipment(
         db_shipment.status = status
         db_shipment.vehicle_id = vehicle_id
         db_shipment.driver_id = driver_id
+        
+        # If status changed, record it in history
+        if old_status != status:
+            history = models.ShipmentHistory(
+                shipment_id=shipment_id,
+                status=status,
+                notes=f"Status alterado de {old_status} para {status}"
+            )
+            db.add(history)
+            
         db.commit()
     return RedirectResponse(url="/ui/shipments", status_code=303)
 

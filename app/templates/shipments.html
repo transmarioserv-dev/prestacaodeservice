@@ -43,12 +43,42 @@
                         </td>
                         <td>
                             <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#historyShipmentModal{{ shipment.id }}">
+                                    <i class="fas fa-history"></i>
+                                </button>
                                 <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editShipmentModal{{ shipment.id }}">
                                     <i class="fas fa-edit"></i>
                                 </button>
                                 <a href="/ui/shipments/{{ shipment.id }}/delete" class="btn btn-outline-danger" onclick="return confirm('Tem certeza que deseja excluir esta entrega?')">
                                     <i class="fas fa-trash"></i>
                                 </a>
+                            </div>
+
+                            <!-- History Modal -->
+                            <div class="modal fade" id="historyShipmentModal{{ shipment.id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Histórico: {{ shipment.tracking_code }}</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body text-start">
+                                            <ul class="list-group list-group-flush">
+                                                {% for h in shipment.history | sort(attribute='timestamp', reverse=True) %}
+                                                <li class="list-group-item">
+                                                    <div class="d-flex w-100 justify-content-between">
+                                                        <h6 class="mb-1 text-danger">{{ h.status }}</h6>
+                                                        <small class="text-muted">{{ h.timestamp.strftime('%d/%m/%Y %H:%M') }}</small>
+                                                    </div>
+                                                    <p class="mb-1 small">{{ h.notes }}</p>
+                                                </li>
+                                                {% else %}
+                                                <li class="list-group-item text-center py-4 text-muted">Sem histórico registrado.</li>
+                                                {% endfor %}
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             <!-- Edit Modal -->

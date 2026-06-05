@@ -1,7 +1,8 @@
-from sqlalchemy import Column, Integer, String, Float, Date, ForeignKey, Enum
+from sqlalchemy import Column, Integer, String, Float, Date, ForeignKey, Enum, DateTime
 from sqlalchemy.orm import relationship
 from .database import Base
 import enum
+from datetime import datetime
 
 class VehicleType(enum.Enum):
     CAMINHAO = "Caminhão"
@@ -63,3 +64,15 @@ class Shipment(Base):
 
     vehicle = relationship("Vehicle", back_populates="shipments")
     driver = relationship("Driver", back_populates="shipments")
+    history = relationship("ShipmentHistory", back_populates="shipment", cascade="all, delete-orphan")
+
+class ShipmentHistory(Base):
+    __tablename__ = "shipment_history"
+
+    id = Column(Integer, primary_key=True, index=True)
+    shipment_id = Column(Integer, ForeignKey("shipments.id"))
+    status = Column(String, nullable=False)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    notes = Column(String)
+
+    shipment = relationship("Shipment", back_populates="history")

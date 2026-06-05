@@ -298,4 +298,3 @@ def ui_delete_shipment(shipment_id: int, db: Session = Depends(get_db)):
         db.delete(db_shipment)
         db.commit()
     return RedirectResponse(url="/ui/shipments", status_code=303)
-us_code=303)

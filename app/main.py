@@ -85,13 +85,15 @@ def ui_shipments(request: Request, db: Session = Depends(get_db)):
 def ui_create_shipment(
     tracking_code: str = Form(...), description: str = Form(None), weight: float = Form(...),
     origin: str = Form(...), destination: str = Form(...), shipping_value: float = Form(...),
-    status: str = Form(...), vehicle_id: int = Form(None), driver_id: int = Form(None),
+    status: str = Form(...), shipment_date: str = Form(...),
+    vehicle_id: int = Form(None), driver_id: int = Form(None),
     db: Session = Depends(get_db)
 ):
     db_shipment = models.Shipment(
         tracking_code=tracking_code, description=description, weight=weight,
         origin=origin, destination=destination, shipping_value=shipping_value,
-        status=status, vehicle_id=vehicle_id, driver_id=driver_id
+        status=status, shipment_date=date.fromisoformat(shipment_date),
+        vehicle_id=vehicle_id, driver_id=driver_id
     )
     db.add(db_shipment)
     db.commit()
@@ -296,3 +298,4 @@ def ui_delete_shipment(shipment_id: int, db: Session = Depends(get_db)):
         db.delete(db_shipment)
         db.commit()
     return RedirectResponse(url="/ui/shipments", status_code=303)
+us_code=303)

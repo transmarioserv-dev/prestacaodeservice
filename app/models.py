@@ -58,6 +58,7 @@ class Shipment(Base):
     destination = Column(String)
     shipping_value = Column(Float)
     status = Column(String, default="Pendente")
+    shipment_date = Column(Date, default=datetime.utcnow)
 
     vehicle_id = Column(Integer, ForeignKey("vehicles.id"))
     driver_id = Column(Integer, ForeignKey("drivers.id"))

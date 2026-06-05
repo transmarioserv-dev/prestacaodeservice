@@ -61,6 +61,7 @@ class ShipmentBase(BaseModel):
     destination: str
     shipping_value: float
     status: str = "Pendente"
+    shipment_date: date
     vehicle_id: Optional[int] = None
     driver_id: Optional[int] = None
 

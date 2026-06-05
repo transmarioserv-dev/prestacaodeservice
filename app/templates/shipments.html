@@ -19,6 +19,7 @@
             <table class="table table-hover mb-0">
                 <thead class="table-light">
                     <tr>
+                        <th>Data</th>
                         <th>Cód. Rastreio</th>
                         <th>Destino</th>
                         <th>Peso</th>
@@ -31,6 +32,7 @@
                 <tbody>
                     {% for shipment in shipments %}
                     <tr>
+                        <td>{{ shipment.shipment_date }}</td>
                         <td><code>{{ shipment.tracking_code }}</code></td>
                         <td>{{ shipment.destination }}</td>
                         <td>{{ shipment.weight }} kg</td>
@@ -205,6 +207,10 @@
                             <input type="number" step="0.01" name="weight" class="form-control" required>
                         </div>
                         <div class="col-md-6">
+                            <label class="form-label">Data da Entrega</label>
+                            <input type="date" name="shipment_date" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
                             <label class="form-label">Status</label>
                             <select name="status" class="form-select">
                                 <option value="Pendente">Pendente</option>
@@ -235,6 +241,14 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#newShipmentModal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Criar Entrega</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+ <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#newShipmentModal">Cancelar</button>
                     <button type="submit" class="btn btn-danger">Criar Entrega</button>
                 </div>
             </form>

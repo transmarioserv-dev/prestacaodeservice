@@ -1,8 +1,10 @@
 import os
 import re
+import time
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.exc import OperationalError
 
 def get_db_url():
     url = os.getenv("DATABASE_URL")
@@ -28,8 +30,6 @@ def get_db_url():
         if "@" in url:
             url = "postgresql://" + url
         else:
-            # If it's just host:port/db or similar, add prefix
-            # But if it's missing @, it might be the cause of the ValueError
             print("WARNING: DATABASE_URL might be missing the '@' separator between credentials and hostname.")
             url = "postgresql://" + url
         
@@ -37,13 +37,25 @@ def get_db_url():
 
 SQLALCHEMY_DATABASE_URL = get_db_url()
 
-try:
-    engine = create_engine(SQLALCHEMY_DATABASE_URL)
-    # Test connection creation (doesn't connect yet)
-    print("SQLAlchemy engine created successfully.")
-except Exception as e:
-    print(f"ERROR creating SQLAlchemy engine: {e}")
-    raise
+# Retry logic for database connection (especially for Docker Compose)
+max_retries = 5
+retry_interval = 5
+engine = None
+
+for i in range(max_retries):
+    try:
+        engine = create_engine(SQLALCHEMY_DATABASE_URL)
+        # Test connection
+        with engine.connect() as conn:
+            print("Successfully connected to the database!")
+        break
+    except OperationalError as e:
+        if i < max_retries - 1:
+            print(f"Database connection failed. Retrying in {retry_interval} seconds... ({i+1}/{max_retries})")
+            time.sleep(retry_interval)
+        else:
+            print("Could not connect to the database after several retries.")
+            raise e
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

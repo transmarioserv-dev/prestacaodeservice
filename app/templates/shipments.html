@@ -43,8 +43,85 @@
                         </td>
                         <td>
                             <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-secondary"><i class="fas fa-eye"></i></button>
-                                <button class="btn btn-outline-danger"><i class="fas fa-trash"></i></button>
+                                <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editShipmentModal{{ shipment.id }}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <a href="/ui/shipments/{{ shipment.id }}/delete" class="btn btn-outline-danger" onclick="return confirm('Tem certeza que deseja excluir esta entrega?')">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
+
+                            <!-- Edit Modal -->
+                            <div class="modal fade" id="editShipmentModal{{ shipment.id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Editar Entrega: {{ shipment.tracking_code }}</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <form action="/ui/shipments/{{ shipment.id }}/update" method="post">
+                                            <div class="modal-body text-start">
+                                                <div class="row g-3">
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Código de Rastreio</label>
+                                                        <input type="text" name="tracking_code" class="form-control" value="{{ shipment.tracking_code }}" required>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Valor do Frete (R$)</label>
+                                                        <input type="number" step="0.01" name="shipping_value" class="form-control" value="{{ shipment.shipping_value }}" required>
+                                                    </div>
+                                                    <div class="col-12">
+                                                        <label class="form-label">Descrição da Carga</label>
+                                                        <textarea name="description" class="form-control" rows="2">{{ shipment.description }}</textarea>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Origem</label>
+                                                        <input type="text" name="origin" class="form-control" value="{{ shipment.origin }}" required>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Destino</label>
+                                                        <input type="text" name="destination" class="form-control" value="{{ shipment.destination }}" required>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Peso (kg)</label>
+                                                        <input type="number" step="0.01" name="weight" class="form-control" value="{{ shipment.weight }}" required>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Status</label>
+                                                        <select name="status" class="form-select">
+                                                            <option value="Pendente" {% if shipment.status == 'Pendente' %}selected{% endif %}>Pendente</option>
+                                                            <option value="Em Trânsito" {% if shipment.status == 'Em Trânsito' %}selected{% endif %}>Em Trânsito</option>
+                                                            <option value="Entregue" {% if shipment.status == 'Entregue' %}selected{% endif %}>Entregue</option>
+                                                            <option value="Cancelado" {% if shipment.status == 'Cancelado' %}selected{% endif %}>Cancelado</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Veículo</label>
+                                                        <select name="vehicle_id" class="form-select">
+                                                            <option value="">Nenhum</option>
+                                                            {% for v in vehicles %}
+                                                            <option value="{{ v.id }}" {% if shipment.vehicle_id == v.id %}selected{% endif %}>{{ v.plate }} - {{ v.model }}</option>
+                                                            {% endfor %}
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Motorista</label>
+                                                        <select name="driver_id" class="form-select">
+                                                            <option value="">Nenhum</option>
+                                                            {% for d in drivers %}
+                                                            <option value="{{ d.id }}" {% if shipment.driver_id == d.id %}selected{% endif %}>{{ d.name }}</option>
+                                                            {% endfor %}
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                                <button type="submit" class="btn btn-danger">Salvar Alterações</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
                             </div>
                         </td>
                     </tr>

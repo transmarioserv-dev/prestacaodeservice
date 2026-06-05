@@ -39,8 +39,66 @@
                         <td>{{ driver.hire_date }}</td>
                         <td>
                             <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-secondary"><i class="fas fa-edit"></i></button>
-                                <button class="btn btn-outline-danger"><i class="fas fa-trash"></i></button>
+                                <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editDriverModal{{ driver.id }}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <a href="/ui/drivers/{{ driver.id }}/delete" class="btn btn-outline-danger" onclick="return confirm('Tem certeza que deseja excluir este motorista?')">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
+
+                            <!-- Edit Modal -->
+                            <div class="modal fade" id="editDriverModal{{ driver.id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Editar Motorista: {{ driver.name }}</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <form action="/ui/drivers/{{ driver.id }}/update" method="post">
+                                            <div class="modal-body text-start">
+                                                <div class="row g-3">
+                                                    <div class="col-12">
+                                                        <label class="form-label">Nome Completo</label>
+                                                        <input type="text" name="name" class="form-control" value="{{ driver.name }}" required>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">CPF</label>
+                                                        <input type="text" name="cpf" class="form-control" value="{{ driver.cpf }}" required>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">CNH</label>
+                                                        <input type="text" name="cnh" class="form-control" value="{{ driver.cnh }}" required>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Categoria CNH</label>
+                                                        <select name="category" class="form-select">
+                                                            <option value="A" {% if driver.category == 'A' %}selected{% endif %}>A</option>
+                                                            <option value="B" {% if driver.category == 'B' %}selected{% endif %}>B</option>
+                                                            <option value="C" {% if driver.category == 'C' %}selected{% endif %}>C</option>
+                                                            <option value="D" {% if driver.category == 'D' %}selected{% endif %}>D</option>
+                                                            <option value="E" {% if driver.category == 'E' %}selected{% endif %}>E</option>
+                                                            <option value="AD" {% if driver.category == 'AD' %}selected{% endif %}>AD</option>
+                                                            <option value="AE" {% if driver.category == 'AE' %}selected{% endif %}>AE</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Telefone</label>
+                                                        <input type="text" name="phone" class="form-control" value="{{ driver.phone }}" required>
+                                                    </div>
+                                                    <div class="col-12">
+                                                        <label class="form-label">Data de Contratação</label>
+                                                        <input type="date" name="hire_date" class="form-control" value="{{ driver.hire_date }}" required>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                                <button type="submit" class="btn btn-danger">Salvar Alterações</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
                             </div>
                         </td>
                     </tr>

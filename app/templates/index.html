@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Mario Transport{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h2><i class="fas fa-tachometer-alt me-2 text-danger"></i>Dashboard</h2>
+        <p class="text-muted">Bem-vindo ao sistema de gestão logística.</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-4">
+        <div class="card h-100 border-start border-primary border-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted text-uppercase small">Veículos</h6>
+                        <h3 class="fw-bold mb-0">{{ vehicles_count }}</h3>
+                    </div>
+                    <div class="bg-primary bg-opacity-10 p-3 rounded">
+                        <i class="fas fa-truck text-primary fa-2x"></i>
+                    </div>
+                </div>
+                <a href="/ui/vehicles" class="stretched-link"></a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100 border-start border-success border-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted text-uppercase small">Motoristas</h6>
+                        <h3 class="fw-bold mb-0">{{ drivers_count }}</h3>
+                    </div>
+                    <div class="bg-success bg-opacity-10 p-3 rounded">
+                        <i class="fas fa-users text-success fa-2x"></i>
+                    </div>
+                </div>
+                <a href="/ui/drivers" class="stretched-link"></a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100 border-start border-warning border-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted text-uppercase small">Entregas Ativas</h6>
+                        <h3 class="fw-bold mb-0">{{ shipments_count }}</h3>
+                    </div>
+                    <div class="bg-warning bg-opacity-10 p-3 rounded">
+                        <i class="fas fa-shipping-fast text-warning fa-2x"></i>
+                    </div>
+                </div>
+                <a href="/ui/shipments" class="stretched-link"></a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-white fw-bold">
+                <i class="fas fa-history me-2 text-muted"></i>Últimas Entregas
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Código</th>
+                                <th>Destino</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for shipment in latest_shipments %}
+                            <tr>
+                                <td><code>{{ shipment.tracking_code }}</code></td>
+                                <td>{{ shipment.destination }}</td>
+                                <td>
+                                    <span class="badge {% if shipment.status == 'Entregue' %}bg-success{% elif shipment.status == 'Em Trânsito' %}bg-warning{% else %}bg-secondary{% endif %}">
+                                        {{ shipment.status }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="3" class="text-center py-4 text-muted">Nenhuma entrega registrada.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header bg-white fw-bold">
+                <i class="fas fa-plus-circle me-2 text-muted"></i>Ações Rápidas
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="/ui/shipments/new" class="btn btn-danger"><i class="fas fa-plus me-2"></i>Nova Entrega</a>
+                    <a href="/ui/vehicles/new" class="btn btn-outline-dark"><i class="fas fa-truck me-2"></i>Cadastrar Veículo</a>
+                    <a href="/ui/drivers/new" class="btn btn-outline-dark"><i class="fas fa-user-plus me-2"></i>Novo Motorista</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

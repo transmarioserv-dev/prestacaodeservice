@@ -1,0 +1,27 @@
+services:
+  db:
+    image: postgres:15
+    container_name: transport_db
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: transport_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  web:
+    build: .
+    container_name: transport_web
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://user:password@db/transport_db
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:

@@ -1,0 +1,21 @@
+services:
+  # Serviço Web (FastAPI)
+  - type: web
+    name: mario-transport-web
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: mario-transport-db
+          property: connectionString
+      - key: PYTHON_VERSION
+        value: 3.11.0
+
+# Banco de Dados (PostgreSQL)
+databases:
+  - name: mario-transport-db
+    databaseName: transport_db
+    user: mario_user
+    plan: free # Você pode mudar para 'starter' se precisar de persistência fora do free tier

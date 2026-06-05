@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}Veículos - Mario Transport{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2><i class="fas fa-truck me-2 text-danger"></i>Veículos</h2>
+        <p class="text-muted">Gerenciamento da frota de transporte.</p>
+    </div>
+    <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#newVehicleModal">
+        <i class="fas fa-plus me-2"></i>Novo Veículo
+    </button>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Placa</th>
+                        <th>Marca/Modelo</th>
+                        <th>Ano</th>
+                        <th>Capacidade</th>
+                        <th>Tipo</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for vehicle in vehicles %}
+                    <tr>
+                        <td><strong>{{ vehicle.plate }}</strong></td>
+                        <td>{{ vehicle.brand }} {{ vehicle.model }}</td>
+                        <td>{{ vehicle.year }}</td>
+                        <td>{{ vehicle.capacity }} kg</td>
+                        <td>{{ vehicle.type }}</td>
+                        <td>
+                            <span class="badge {% if vehicle.status == 'Disponível' %}bg-success{% elif vehicle.status == 'Em Manutenção' %}bg-danger{% else %}bg-warning{% endif %}">
+                                {{ vehicle.status }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-secondary"><i class="fas fa-edit"></i></button>
+                                <button class="btn btn-outline-danger"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="fas fa-truck fa-3x mb-3 d-block opacity-25"></i>
+                            Nenhum veículo cadastrado.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="newVehicleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Cadastrar Novo Veículo</h5>
+                <button type="button" class="btn-close" data-bs-toggle="modal" data-bs-target="#newVehicleModal"></button>
+            </div>
+            <form action="/ui/vehicles" method="post">
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Placa</label>
+                            <input type="text" name="plate" class="form-control" placeholder="ABC-1234" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Ano</label>
+                            <input type="number" name="year" class="form-control" value="2023" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Marca</label>
+                            <input type="text" name="brand" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Modelo</label>
+                            <input type="text" name="model" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Capacidade (kg)</label>
+                            <input type="number" step="0.01" name="capacity" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Tipo</label>
+                            <select name="type" class="form-select">
+                                <option value="Caminhão">Caminhão</option>
+                                <option value="Van">Van</option>
+                                <option value="Moto">Moto</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#newVehicleModal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}Entregas - Mario Transport{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2><i class="fas fa-box me-2 text-danger"></i>Entregas</h2>
+        <p class="text-muted">Gestão de remessas e logística.</p>
+    </div>
+    <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#newShipmentModal">
+        <i class="fas fa-plus me-2"></i>Nova Entrega
+    </button>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Cód. Rastreio</th>
+                        <th>Destino</th>
+                        <th>Peso</th>
+                        <th>Veículo</th>
+                        <th>Motorista</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for shipment in shipments %}
+                    <tr>
+                        <td><code>{{ shipment.tracking_code }}</code></td>
+                        <td>{{ shipment.destination }}</td>
+                        <td>{{ shipment.weight }} kg</td>
+                        <td>{{ shipment.vehicle.plate if shipment.vehicle else '-' }}</td>
+                        <td>{{ shipment.driver.name if shipment.driver else '-' }}</td>
+                        <td>
+                            <span class="badge {% if shipment.status == 'Entregue' %}bg-success{% elif shipment.status == 'Em Trânsito' %}bg-warning{% else %}bg-secondary{% endif %}">
+                                {{ shipment.status }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-secondary"><i class="fas fa-eye"></i></button>
+                                <button class="btn btn-outline-danger"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="fas fa-box-open fa-3x mb-3 d-block opacity-25"></i>
+                            Nenhuma entrega registrada.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="newShipmentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nova Entrega</h5>
+                <button type="button" class="btn-close" data-bs-toggle="modal" data-bs-target="#newShipmentModal"></button>
+            </div>
+            <form action="/ui/shipments" method="post">
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Código de Rastreio</label>
+                            <input type="text" name="tracking_code" class="form-control" placeholder="LOG123456" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Valor do Frete (R$)</label>
+                            <input type="number" step="0.01" name="shipping_value" class="form-control" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Descrição da Carga</label>
+                            <textarea name="description" class="form-control" rows="2"></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Origem</label>
+                            <input type="text" name="origin" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Destino</label>
+                            <input type="text" name="destination" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Peso (kg)</label>
+                            <input type="number" step="0.01" name="weight" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Status</label>
+                            <select name="status" class="form-select">
+                                <option value="Pendente">Pendente</option>
+                                <option value="Em Trânsito">Em Trânsito</option>
+                                <option value="Entregue">Entregue</option>
+                                <option value="Cancelado">Cancelado</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Veículo</label>
+                            <select name="vehicle_id" class="form-select">
+                                <option value="">Nenhum</option>
+                                {% for vehicle in vehicles %}
+                                <option value="{{ vehicle.id }}">{{ vehicle.plate }} - {{ vehicle.model }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Motorista</label>
+                            <select name="driver_id" class="form-select">
+                                <option value="">Nenhum</option>
+                                {% for driver in drivers %}
+                                <option value="{{ driver.id }}">{{ driver.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#newShipmentModal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Criar Entrega</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

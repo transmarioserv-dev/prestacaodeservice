@@ -125,6 +125,10 @@
                                                         <input type="number" step="0.01" name="weight" class="form-control" value="{{ shipment.weight }}" required>
                                                     </div>
                                                     <div class="col-md-6">
+                                                        <label class="form-label">Data da Entrega</label>
+                                                        <input type="date" name="shipment_date" class="form-control" value="{{ shipment.shipment_date }}" required>
+                                                    </div>
+                                                    <div class="col-md-6">
                                                         <label class="form-label">Status</label>
                                                         <select name="status" class="form-select">
                                                             <option value="Pendente" {% if shipment.status == 'Pendente' %}selected{% endif %}>Pendente</option>

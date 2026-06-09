@@ -3,12 +3,50 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import inspect, text
 from . import models, schemas, database
 from .database import engine, get_db
 from datetime import date
 
 # Create tables
 models.Base.metadata.create_all(bind=engine)
+
+# Quick migration for existing databases
+def run_migrations():
+    print("Checking for database migrations...")
+    try:
+        inspector = inspect(engine)
+        tables = inspector.get_table_names()
+        print(f"Existing tables: {tables}")
+        
+        if "shipments" in tables:
+            columns = [c["name"] for c in inspector.get_columns("shipments")]
+            print(f"Columns in 'shipments' table: {columns}")
+            if "shipment_date" not in columns:
+                print("Attempting to add 'shipment_date' column to 'shipments' table...")
+                with engine.connect() as conn:
+                    # Postgres-specific syntax for adding column if not exists is a bit complex in older versions, 
+                    # but simple for newer ones. We'll use a try-except block or the specific check.
+                    conn.execute(text("ALTER TABLE shipments ADD COLUMN IF NOT EXISTS shipment_date DATE DEFAULT CURRENT_DATE"))
+                    conn.commit()
+                print("Migration: Added shipment_date column to shipments table.")
+            else:
+                print("'shipment_date' column already exists.")
+        else:
+            print("'shipments' table not found, metadata.create_all should handle it.")
+    except Exception as e:
+        print(f"Migration error: {e}")
+        # Try a direct approach if the inspector failed
+        try:
+            print("Attempting direct migration...")
+            with engine.connect() as conn:
+                conn.execute(text("ALTER TABLE shipments ADD COLUMN IF NOT EXISTS shipment_date DATE DEFAULT CURRENT_DATE"))
+                conn.commit()
+            print("Direct migration successful.")
+        except Exception as e2:
+            print(f"Direct migration failed: {e2}")
+
+run_migrations()
 
 app = FastAPI(title="Mario Transport Service API")
 templates = Jinja2Templates(directory="app/templates")
@@ -279,7 +317,8 @@ def ui_update_shipment(
     shipment_id: int,
     tracking_code: str = Form(...), description: str = Form(None), weight: float = Form(...),
     origin: str = Form(...), destination: str = Form(...), shipping_value: float = Form(...),
-    status: str = Form(...), vehicle_id: int = Form(None), driver_id: int = Form(None),
+    status: str = Form(...), shipment_date: str = Form(...),
+    vehicle_id: int = Form(None), driver_id: int = Form(None),
     db: Session = Depends(get_db)
 ):
     db_shipment = db.query(models.Shipment).filter(models.Shipment.id == shipment_id).first()
@@ -292,6 +331,7 @@ def ui_update_shipment(
         db_shipment.destination = destination
         db_shipment.shipping_value = shipping_value
         db_shipment.status = status
+        db_shipment.shipment_date = date.fromisoformat(shipment_date)
         db_shipment.vehicle_id = vehicle_id
         db_shipment.driver_id = driver_id
         

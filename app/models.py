@@ -33,6 +33,7 @@ class Vehicle(Base):
     status = Column(String, default="Disponível")
 
     shipments = relationship("Shipment", back_populates="vehicle")
+    telemetry = relationship("VehicleTelemetry", back_populates="vehicle", cascade="all, delete-orphan")
 
 class Driver(Base):
     __tablename__ = "drivers"
@@ -77,3 +78,19 @@ class ShipmentHistory(Base):
     notes = Column(String)
 
     shipment = relationship("Shipment", back_populates="history")
+
+class VehicleTelemetry(Base):
+    __tablename__ = "vehicle_telemetry"
+
+    id = Column(Integer, primary_key=True, index=True)
+    vehicle_id = Column(Integer, ForeignKey("vehicles.id"))
+    date = Column(Date, nullable=False)
+    
+    route_length = Column(Float) # Km
+    top_speed = Column(Float) # kph
+    avg_speed = Column(Float) # kph
+    fuel_consumption = Column(Float) # L
+    engine_hours = Column(String) # Duration string
+    odometer = Column(Float) # KM
+
+    vehicle = relationship("Vehicle", back_populates="telemetry")

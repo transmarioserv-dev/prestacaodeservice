@@ -1,15 +1,19 @@
-from fastapi import FastAPI, Depends, HTTPException, Request, Form
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import FastAPI, Depends, HTTPException, Request, Form, File, UploadFile
+from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy import inspect, text
-from . import models, schemas, database
+from sqlalchemy import inspect, text, func
+from . import models, schemas, database, utils
 from .database import engine, get_db
 from datetime import date
+import os
+import shutil
 
 # Create tables
 models.Base.metadata.create_all(bind=engine)
+
 
 # Quick migration for existing databases
 def run_migrations():
@@ -25,8 +29,6 @@ def run_migrations():
             if "shipment_date" not in columns:
                 print("Attempting to add 'shipment_date' column to 'shipments' table...")
                 with engine.connect() as conn:
-                    # Postgres-specific syntax for adding column if not exists is a bit complex in older versions, 
-                    # but simple for newer ones. We'll use a try-except block or the specific check.
                     conn.execute(text("ALTER TABLE shipments ADD COLUMN IF NOT EXISTS shipment_date DATE DEFAULT CURRENT_DATE"))
                     conn.commit()
                 print("Migration: Added shipment_date column to shipments table.")
@@ -51,6 +53,9 @@ run_migrations()
 app = FastAPI(title="Mario Transport Service API")
 templates = Jinja2Templates(directory="app/templates")
 
+# Mount reports directory as static files
+app.mount("/reports_files", StaticFiles(directory="relatorios"), name="reports_files")
+
 @app.get("/", response_class=HTMLResponse)
 def read_root(request: Request, db: Session = Depends(get_db)):
     vehicles_count = db.query(models.Vehicle).count()
@@ -58,16 +63,83 @@ def read_root(request: Request, db: Session = Depends(get_db)):
     shipments_count = db.query(models.Shipment).filter(models.Shipment.status != "Entregue").count()
     latest_shipments = db.query(models.Shipment).order_by(models.Shipment.id.desc()).limit(5).all()
     
+    # Telemetry Stats
+    total_km = db.query(func.sum(models.VehicleTelemetry.route_length)).scalar() or 0
+    avg_fuel = db.query(func.avg(models.VehicleTelemetry.fuel_consumption)).scalar() or 0
+    
     context = {
         "request": request,
         "vehicles_count": vehicles_count,
         "drivers_count": drivers_count,
         "shipments_count": shipments_count,
-        "latest_shipments": latest_shipments
+        "latest_shipments": latest_shipments,
+        "total_km": round(total_km, 2),
+        "avg_fuel": round(avg_fuel, 2)
     }
     return templates.TemplateResponse(request=request, name="index.html", context=context)
 
 # --- UI ROUTES ---
+
+@app.get("/ui/reports", response_class=HTMLResponse)
+def ui_reports(request: Request):
+    reports = []
+    relatorios_dir = "relatorios"
+    for root, dirs, files in os.walk(relatorios_dir):
+        for file in files:
+            # Create a relative path from the 'relatorios' directory
+            rel_path = os.path.relpath(os.path.join(root, file), relatorios_dir)
+            reports.append({
+                "name": file,
+                "path": rel_path,
+                "folder": os.path.basename(root) if root != relatorios_dir else "Principal"
+            })
+    
+    # Sort by name descending (usually dates are in filenames)
+    reports.sort(key=lambda x: x["name"], reverse=True)
+    
+    return templates.TemplateResponse(
+        request=request, name="reports.html", context={"request": request, "reports": reports}
+    )
+
+@app.post("/ui/reports/upload")
+async def ui_upload_report(
+    request: Request,
+    report_file: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    relatorios_dir = "relatorios"
+    os.makedirs(relatorios_dir, exist_ok=True)
+    
+    file_path = os.path.join(relatorios_dir, report_file.filename)
+    
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(report_file.file, buffer)
+    
+    # Process the file to update database
+    success = utils.process_report_file(file_path, db)
+    
+    # Prepare reports list for re-rendering with message
+    reports = []
+    for root, dirs, files in os.walk(relatorios_dir):
+        for file in files:
+            rel_path = os.path.relpath(os.path.join(root, file), relatorios_dir)
+            reports.append({
+                "name": file,
+                "path": rel_path,
+                "folder": os.path.basename(root) if root != relatorios_dir else "Principal"
+            })
+    reports.sort(key=lambda x: x["name"], reverse=True)
+    
+    msg = "Relatório enviado e processado com sucesso!" if success else "Relatório enviado, mas o formato não permitiu a extração automática de dados."
+    
+    return templates.TemplateResponse(
+        request=request, name="reports.html", context={
+            "request": request, 
+            "reports": reports,
+            "success_msg": msg if success else None,
+            "info_msg": msg if not success else None
+        }
+    )
 
 @app.get("/ui/vehicles", response_class=HTMLResponse)
 def ui_vehicles(request: Request, db: Session = Depends(get_db)):

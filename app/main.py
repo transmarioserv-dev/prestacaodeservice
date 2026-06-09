@@ -53,6 +53,9 @@ run_migrations()
 app = FastAPI(title="Mario Transport Service API")
 templates = Jinja2Templates(directory="app/templates")
 
+# Ensure reports directory exists
+os.makedirs("relatorios", exist_ok=True)
+
 # Mount reports directory as static files
 app.mount("/reports_files", StaticFiles(directory="relatorios"), name="reports_files")
 

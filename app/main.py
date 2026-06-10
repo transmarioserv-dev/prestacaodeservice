@@ -25,17 +25,29 @@ def run_migrations():
         
         if "shipments" in tables:
             columns = [c["name"] for c in inspector.get_columns("shipments")]
-            print(f"Columns in 'shipments' table: {columns}")
             if "shipment_date" not in columns:
-                print("Attempting to add 'shipment_date' column to 'shipments' table...")
                 with engine.connect() as conn:
                     conn.execute(text("ALTER TABLE shipments ADD COLUMN IF NOT EXISTS shipment_date DATE DEFAULT CURRENT_DATE"))
                     conn.commit()
                 print("Migration: Added shipment_date column to shipments table.")
-            else:
-                print("'shipment_date' column already exists.")
-        else:
-            print("'shipments' table not found, metadata.create_all should handle it.")
+        
+        if "vehicle_telemetry" in tables:
+            columns = [c["name"] for c in inspector.get_columns("vehicle_telemetry")]
+            new_columns = [
+                ("refueling_count", "INTEGER DEFAULT 0"),
+                ("refueling_volume", "FLOAT DEFAULT 0.0"),
+                ("theft_count", "INTEGER DEFAULT 0"),
+                ("theft_volume", "FLOAT DEFAULT 0.0"),
+                ("fuel_efficiency", "FLOAT"),
+                ("net_loss", "FLOAT DEFAULT 0.0")
+            ]
+            for col_name, col_type in new_columns:
+                if col_name not in columns:
+                    print(f"Attempting to add '{col_name}' column to 'vehicle_telemetry' table...")
+                    with engine.connect() as conn:
+                        conn.execute(text(f"ALTER TABLE vehicle_telemetry ADD COLUMN IF NOT EXISTS {col_name} {col_type}"))
+                        conn.commit()
+                    print(f"Migration: Added {col_name} column to vehicle_telemetry table.")
     except Exception as e:
         print(f"Migration error: {e}")
         # Try a direct approach if the inspector failed
@@ -43,6 +55,12 @@ def run_migrations():
             print("Attempting direct migration...")
             with engine.connect() as conn:
                 conn.execute(text("ALTER TABLE shipments ADD COLUMN IF NOT EXISTS shipment_date DATE DEFAULT CURRENT_DATE"))
+                conn.execute(text("ALTER TABLE vehicle_telemetry ADD COLUMN IF NOT EXISTS refueling_count INTEGER DEFAULT 0"))
+                conn.execute(text("ALTER TABLE vehicle_telemetry ADD COLUMN IF NOT EXISTS refueling_volume FLOAT DEFAULT 0.0"))
+                conn.execute(text("ALTER TABLE vehicle_telemetry ADD COLUMN IF NOT EXISTS theft_count INTEGER DEFAULT 0"))
+                conn.execute(text("ALTER TABLE vehicle_telemetry ADD COLUMN IF NOT EXISTS theft_volume FLOAT DEFAULT 0.0"))
+                conn.execute(text("ALTER TABLE vehicle_telemetry ADD COLUMN IF NOT EXISTS fuel_efficiency FLOAT"))
+                conn.execute(text("ALTER TABLE vehicle_telemetry ADD COLUMN IF NOT EXISTS net_loss FLOAT DEFAULT 0.0"))
                 conn.commit()
             print("Direct migration successful.")
         except Exception as e2:

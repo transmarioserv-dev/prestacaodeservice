@@ -68,7 +68,23 @@ def read_root(request: Request, db: Session = Depends(get_db)):
     
     # Telemetry Stats
     total_km = db.query(func.sum(models.VehicleTelemetry.route_length)).scalar() or 0
-    avg_fuel = db.query(func.avg(models.VehicleTelemetry.fuel_consumption)).scalar() or 0
+    avg_fuel_cons = db.query(func.avg(models.VehicleTelemetry.fuel_consumption)).scalar() or 0
+    
+    # New Stats from Consolidated Report
+    total_thefts_vol = db.query(func.sum(models.VehicleTelemetry.theft_volume)).scalar() or 0
+    total_refills_vol = db.query(func.sum(models.VehicleTelemetry.refueling_volume)).scalar() or 0
+    total_thefts_count = db.query(func.sum(models.VehicleTelemetry.theft_count)).scalar() or 0
+    total_refills_count = db.query(func.sum(models.VehicleTelemetry.refueling_count)).scalar() or 0
+    avg_efficiency = db.query(func.avg(models.VehicleTelemetry.fuel_efficiency)).filter(models.VehicleTelemetry.fuel_efficiency > 0).scalar() or 0
+    
+    # Financial loss (estimated US$ 1,20/L)
+    estimated_loss = total_thefts_vol * 1.20
+
+    # Critical vehicles (top thefts)
+    critical_vehicles = db.query(
+        models.Vehicle.plate, 
+        func.sum(models.VehicleTelemetry.theft_volume).label("total_theft")
+    ).join(models.VehicleTelemetry).group_by(models.Vehicle.plate).filter(models.VehicleTelemetry.theft_volume > 0).order_by(text("total_theft DESC")).limit(5).all()
     
     context = {
         "request": request,
@@ -77,7 +93,14 @@ def read_root(request: Request, db: Session = Depends(get_db)):
         "shipments_count": shipments_count,
         "latest_shipments": latest_shipments,
         "total_km": round(total_km, 2),
-        "avg_fuel": round(avg_fuel, 2)
+        "avg_fuel": round(avg_fuel_cons, 2),
+        "total_thefts_vol": round(total_thefts_vol, 2),
+        "total_refills_vol": round(total_refills_vol, 2),
+        "total_thefts_count": total_thefts_count,
+        "total_refills_count": total_refills_count,
+        "avg_efficiency": round(avg_efficiency, 2),
+        "estimated_loss": round(estimated_loss, 2),
+        "critical_vehicles": critical_vehicles
     }
     return templates.TemplateResponse(request=request, name="index.html", context=context)
 

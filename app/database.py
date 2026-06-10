@@ -10,8 +10,8 @@ def get_db_url():
     url = os.getenv("DATABASE_URL")
     
     if not url:
-        print("DATABASE_URL not found in environment, using local fallback.")
-        return "postgresql://user:password@localhost/transport_db"
+        print("DATABASE_URL not found in environment, using SQLite fallback.")
+        return "sqlite:///./transport.db"
     
     # Clean whitespace and quotes
     url = url.strip().strip("\"'")

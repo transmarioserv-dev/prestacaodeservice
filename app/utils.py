@@ -140,13 +140,104 @@ def ingest_odometer_report(soup, file_date, db: Session):
             db.add(new_telemetry)
         db.commit()
 
+def ingest_consolidated_report(content, file_date, db: Session):
+    # Regex to find each vehicle section
+    sections = re.split(r'\d+\.\s+([A-Z0-9-]+)\s+\(', content)
+    
+    # The first element is before any vehicle section
+    for i in range(1, len(sections), 2):
+        plate = sections[i]
+        data_block = sections[i+1]
+        
+        vehicle = db.query(models.Vehicle).filter(models.Vehicle.plate == plate).first()
+        if not vehicle:
+            vehicle = models.Vehicle(plate=plate, status="Disponível")
+            db.add(vehicle)
+            db.commit()
+            db.refresh(vehicle)
+        
+        telemetry_data = {
+            "vehicle_id": vehicle.id,
+            "date": file_date,
+            "route_length": 0.0,
+            "fuel_consumption": 0.0,
+            "refueling_count": 0,
+            "refueling_volume": 0.0,
+            "theft_count": 0,
+            "theft_volume": 0.0,
+            "fuel_efficiency": 0.0,
+            "net_loss": 0.0
+        }
+        
+        # Extract values using regex
+        dist_match = re.search(r'Distância percorrida\s+([\d,.]+)\s+km', data_block)
+        if dist_match:
+            telemetry_data["route_length"] = parse_float(dist_match.group(1))
+            
+        cons_match = re.search(r'Consumo declarado\s+([\d,.]+)\s+L', data_block)
+        if cons_match:
+            telemetry_data["fuel_consumption"] = parse_float(cons_match.group(1))
+            
+        abast_match = re.search(r'Abastecimentos\s+(\d+)\s+\(([\d,.]+)\s+L\)', data_block)
+        if abast_match:
+            telemetry_data["refueling_count"] = int(abast_match.group(1))
+            telemetry_data["refueling_volume"] = parse_float(abast_match.group(2))
+        elif re.search(r'Abastecimentos\s+0', data_block):
+            telemetry_data["refueling_count"] = 0
+            telemetry_data["refueling_volume"] = 0.0
+            
+        furtos_match = re.search(r'Furtos\s+(\d+)\s+eventos\s+\(total\s+([-]?[\d,.]+)\s+L\)', data_block)
+        if furtos_match:
+            telemetry_data["theft_count"] = int(furtos_match.group(1))
+            telemetry_data["theft_volume"] = abs(parse_float(furtos_match.group(2)))
+        else:
+            # Try another format: Furtos 1 (-15,65 L)
+            furtos_match_alt = re.search(r'Furtos\s+(\d+)\s+\(([-]?[\d,.]+)\s+L\)', data_block)
+            if furtos_match_alt:
+                telemetry_data["theft_count"] = int(furtos_match_alt.group(1))
+                telemetry_data["theft_volume"] = abs(parse_float(furtos_match_alt.group(2)))
+        
+        eff_match = re.search(r'Eficiência operacional\s+([\d,.]+)\s+km/L', data_block)
+        if eff_match:
+            telemetry_data["fuel_efficiency"] = parse_float(eff_match.group(1))
+            
+        loss_match = re.search(r'Perda líquida\s+([-]?[\d,.]+)\s+L', data_block)
+        if loss_match:
+            telemetry_data["net_loss"] = parse_float(loss_match.group(1))
+
+        # Update or create telemetry record
+        existing = db.query(models.VehicleTelemetry).filter(
+            models.VehicleTelemetry.vehicle_id == vehicle.id,
+            models.VehicleTelemetry.date == file_date
+        ).first()
+
+        if existing:
+            existing.route_length = max(existing.route_length or 0, telemetry_data["route_length"])
+            existing.fuel_consumption = max(existing.fuel_consumption or 0, telemetry_data["fuel_consumption"])
+            existing.refueling_count = telemetry_data["refueling_count"]
+            existing.refueling_volume = telemetry_data["refueling_volume"]
+            existing.theft_count = telemetry_data["theft_count"]
+            existing.theft_volume = telemetry_data["theft_volume"]
+            existing.fuel_efficiency = telemetry_data["fuel_efficiency"]
+            existing.net_loss = telemetry_data["net_loss"]
+        else:
+            new_telemetry = models.VehicleTelemetry(**telemetry_data)
+            db.add(new_telemetry)
+        db.commit()
+
 def process_report_file(file_path, db: Session):
     filename = os.path.basename(file_path)
     date_match = re.search(r'(\d{4})_(\d{2})_(\d{2})', filename)
     if date_match:
         file_date = date(int(date_match.group(1)), int(date_match.group(2)), int(date_match.group(3)))
     else:
-        file_date = date.today()
+        # Check if "dia 9" or "dia 7" is in path
+        if "dia 9" in file_path:
+            file_date = date(2026, 6, 9)
+        elif "dia 7" in file_path:
+            file_date = date(2026, 6, 7)
+        else:
+            file_date = date.today()
 
     if filename.endswith(".html"):
         try:
@@ -157,6 +248,15 @@ def process_report_file(file_path, db: Session):
                     return True
                 elif "odometer_daily_report" in filename:
                     ingest_odometer_report(soup, file_date, db)
+                    return True
+        except Exception as e:
+            print(f"Error parsing {file_path}: {e}")
+    elif filename.endswith(".txt"):
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+                if "RELATÓRIO CONSOLIDADO" in content or "DASHBOARD OPERACIONAL" in content:
+                    ingest_consolidated_report(content, file_date, db)
                     return True
         except Exception as e:
             print(f"Error parsing {file_path}: {e}")

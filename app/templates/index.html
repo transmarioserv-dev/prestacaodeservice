@@ -62,41 +62,78 @@
 </div>
 
 <div class="row mt-4">
-    <div class="col-md-6">
+    <div class="col-md-3">
         <div class="card border-0 shadow-sm bg-danger text-white">
             <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="flex-grow-1">
-                        <h6 class="text-white-50 text-uppercase small mb-1">Distância Total Percorrida</h6>
-                        <h2 class="mb-0 fw-bold">{{ total_km }} <small class="fw-normal h5">km</small></h2>
-                    </div>
-                    <div class="ms-3">
-                        <i class="fas fa-route fa-3x text-white-50"></i>
-                    </div>
-                </div>
+                <h6 class="text-white-50 text-uppercase small mb-1">Combustível Furtado</h6>
+                <h2 class="mb-0 fw-bold">{{ total_thefts_vol }} <small class="fw-normal h5">L</small></h2>
+                <div class="small mt-2 text-white-50">{{ total_thefts_count }} eventos registrados</div>
             </div>
         </div>
     </div>
-    <div class="col-md-6">
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm bg-success text-white">
+            <div class="card-body">
+                <h6 class="text-white-50 text-uppercase small mb-1">Total Abastecido</h6>
+                <h2 class="mb-0 fw-bold">{{ total_refills_vol }} <small class="fw-normal h5">L</small></h2>
+                <div class="small mt-2 text-white-50">{{ total_refills_count }} abastecimentos</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm bg-warning text-dark">
+            <div class="card-body">
+                <h6 class="text-dark-50 text-uppercase small mb-1">Eficiência Média</h6>
+                <h2 class="mb-0 fw-bold">{{ avg_efficiency }} <small class="fw-normal h5">km/L</small></h2>
+                <div class="small mt-2 text-dark-50">Baseado em dados reais</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
         <div class="card border-0 shadow-sm bg-dark text-white">
             <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="flex-grow-1">
-                        <h6 class="text-white-50 text-uppercase small mb-1">Consumo Médio de Combustível</h6>
-                        <h2 class="mb-0 fw-bold">{{ avg_fuel }} <small class="fw-normal h5">L</small></h2>
-                    </div>
-                    <div class="ms-3">
-                        <i class="fas fa-gas-pump fa-3x text-white-50"></i>
-                    </div>
-                </div>
+                <h6 class="text-white-50 text-uppercase small mb-1">Perda Estimada</h6>
+                <h2 class="mb-0 fw-bold">US$ {{ estimated_loss }}</h2>
+                <div class="small mt-2 text-white-50">Custo de reposição</div>
             </div>
         </div>
     </div>
 </div>
 
 <div class="row mt-5">
-    <div class="col-md-8">
-        <div class="card">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-white fw-bold text-danger">
+                <i class="fas fa-exclamation-triangle me-2"></i>Veículos Críticos (Furtos)
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Placa</th>
+                                <th class="text-end">Volume Furtado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for vehicle in critical_vehicles %}
+                            <tr>
+                                <td><span class="badge bg-dark">{{ vehicle.plate }}</span></td>
+                                <td class="text-end text-danger fw-bold">{{ vehicle.total_theft|round(2) }} L</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="2" class="text-center py-4 text-muted">Nenhum alerta de furto.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100">
             <div class="card-header bg-white fw-bold">
                 <i class="fas fa-history me-2 text-muted"></i>Últimas Entregas
             </div>
@@ -132,16 +169,38 @@
             </div>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card h-100">
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card border-0 shadow-sm bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h6 class="text-white-50 text-uppercase small mb-1">Distância Total Percorrida</h6>
+                        <h2 class="mb-0 fw-bold">{{ total_km }} <small class="fw-normal h5">km</small></h2>
+                    </div>
+                    <div class="ms-3">
+                        <i class="fas fa-route fa-3x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
             <div class="card-header bg-white fw-bold">
                 <i class="fas fa-plus-circle me-2 text-muted"></i>Ações Rápidas
             </div>
             <div class="card-body">
-                <div class="d-grid gap-2">
-                    <a href="/ui/shipments/new" class="btn btn-danger"><i class="fas fa-plus me-2"></i>Nova Entrega</a>
-                    <a href="/ui/vehicles/new" class="btn btn-outline-dark"><i class="fas fa-truck me-2"></i>Cadastrar Veículo</a>
-                    <a href="/ui/drivers/new" class="btn btn-outline-dark"><i class="fas fa-user-plus me-2"></i>Novo Motorista</a>
+                <div class="d-flex gap-3">
+                    <a href="/ui/shipments" class="btn btn-danger"><i class="fas fa-plus me-2"></i>Nova Entrega</a>
+                    <a href="/ui/vehicles" class="btn btn-outline-dark"><i class="fas fa-truck me-2"></i>Gerenciar Veículos</a>
+                    <a href="/ui/drivers" class="btn btn-outline-dark"><i class="fas fa-user-plus me-2"></i>Gerenciar Motoristas</a>
+                    <a href="/ui/reports" class="btn btn-outline-primary"><i class="fas fa-file-alt me-2"></i>Relatórios</a>
                 </div>
             </div>
         </div>

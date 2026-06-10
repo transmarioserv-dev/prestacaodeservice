@@ -74,3 +74,29 @@ class Shipment(ShipmentBase):
 
     class Config:
         from_attributes = True
+
+# Telemetry Schemas
+class VehicleTelemetryBase(BaseModel):
+    date: date
+    route_length: Optional[float] = 0.0
+    top_speed: Optional[float] = 0.0
+    avg_speed: Optional[float] = 0.0
+    fuel_consumption: Optional[float] = 0.0
+    engine_hours: Optional[str] = "0s"
+    odometer: Optional[float] = 0.0
+    refueling_count: Optional[int] = 0
+    refueling_volume: Optional[float] = 0.0
+    theft_count: Optional[int] = 0
+    theft_volume: Optional[float] = 0.0
+    fuel_efficiency: Optional[float] = 0.0
+    net_loss: Optional[float] = 0.0
+
+class VehicleTelemetryCreate(VehicleTelemetryBase):
+    vehicle_id: int
+
+class VehicleTelemetry(VehicleTelemetryBase):
+    id: int
+    vehicle_id: int
+
+    class Config:
+        from_attributes = True

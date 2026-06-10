@@ -93,4 +93,11 @@ class VehicleTelemetry(Base):
     engine_hours = Column(String) # Duration string
     odometer = Column(Float) # KM
 
+    refueling_count = Column(Integer, default=0)
+    refueling_volume = Column(Float, default=0.0)
+    theft_count = Column(Integer, default=0)
+    theft_volume = Column(Float, default=0.0)
+    fuel_efficiency = Column(Float) # km/L
+    net_loss = Column(Float, default=0.0)
+
     vehicle = relationship("Vehicle", back_populates="telemetry")

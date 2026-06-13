@@ -40,11 +40,11 @@ class Driver(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
-    cpf = Column(String, unique=True, index=True, nullable=False)
-    cnh = Column(String, unique=True, index=True, nullable=False)
+    cnh = Column(String, unique=True, index=True, nullable=True)
     category = Column(String)
     phone = Column(String)
     hire_date = Column(Date)
+    assigned_plate = Column(String)
 
     shipments = relationship("Shipment", back_populates="driver")
 

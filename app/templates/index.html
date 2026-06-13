@@ -4,9 +4,37 @@
 
 {% block content %}
 <div class="row mb-4">
-    <div class="col">
+    <div class="col-md-6">
         <h2><i class="fas fa-tachometer-alt me-2 text-danger"></i>Dashboard</h2>
         <p class="text-muted">Bem-vindo ao sistema de gestão logística.</p>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow-sm border-0">
+            <div class="card-body py-2">
+                <form method="get" class="row g-2 align-items-end">
+                    <div class="col-md-4">
+                        <label class="small text-muted mb-1">Início</label>
+                        <input type="date" name="start_date" class="form-control form-control-sm" value="{{ filters.start_date or '' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="small text-muted mb-1">Fim</label>
+                        <input type="date" name="end_date" class="form-control form-control-sm" value="{{ filters.end_date or '' }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="small text-muted mb-1">Veículo</label>
+                        <select name="vehicle_id" class="form-select form-select-sm">
+                            <option value="">Todos</option>
+                            {% for v in vehicles_list %}
+                            <option value="{{ v.id }}" {% if filters.vehicle_id|string == v.id|string %}selected{% endif %}>{{ v.plate }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-1">
+                        <button type="submit" class="btn btn-sm btn-danger w-100"><i class="fas fa-filter"></i></button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -93,7 +121,7 @@
         <div class="card border-0 shadow-sm bg-dark text-white">
             <div class="card-body">
                 <h6 class="text-white-50 text-uppercase small mb-1">Perda Estimada</h6>
-                <h2 class="mb-0 fw-bold">US$ {{ estimated_loss }}</h2>
+                <h2 class="mb-0 fw-bold">MT {{ estimated_loss }}</h2>
                 <div class="small mt-2 text-white-50">Custo de reposição</div>
             </div>
         </div>

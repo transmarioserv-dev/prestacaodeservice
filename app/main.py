@@ -48,6 +48,19 @@ def run_migrations():
                         conn.execute(text(f"ALTER TABLE vehicle_telemetry ADD COLUMN IF NOT EXISTS {col_name} {col_type}"))
                         conn.commit()
                     print(f"Migration: Added {col_name} column to vehicle_telemetry table.")
+
+        if "drivers" in tables:
+            print("Checking drivers table for updates...")
+            columns = [c["name"] for c in inspector.get_columns("drivers")]
+            with engine.connect() as conn:
+                if "cpf" in columns:
+                    conn.execute(text("ALTER TABLE drivers DROP COLUMN cpf"))
+                if "cnh" in columns:
+                    conn.execute(text("ALTER TABLE drivers ALTER COLUMN cnh DROP NOT NULL"))
+                if "assigned_plate" not in columns:
+                    conn.execute(text("ALTER TABLE drivers ADD COLUMN assigned_plate CHARACTER VARYING"))
+                conn.commit()
+            print("Migration: Updated drivers table (removed cpf, updated cnh and assigned_plate).")
     except Exception as e:
         print(f"Migration error: {e}")
         # Try a direct approach if the inspector failed
@@ -61,6 +74,9 @@ def run_migrations():
                 conn.execute(text("ALTER TABLE vehicle_telemetry ADD COLUMN IF NOT EXISTS theft_volume FLOAT DEFAULT 0.0"))
                 conn.execute(text("ALTER TABLE vehicle_telemetry ADD COLUMN IF NOT EXISTS fuel_efficiency FLOAT"))
                 conn.execute(text("ALTER TABLE vehicle_telemetry ADD COLUMN IF NOT EXISTS net_loss FLOAT DEFAULT 0.0"))
+                conn.execute(text("ALTER TABLE drivers DROP COLUMN IF EXISTS cpf"))
+                conn.execute(text("ALTER TABLE drivers ALTER COLUMN cnh DROP NOT NULL"))
+                conn.execute(text("ALTER TABLE drivers ADD COLUMN IF NOT EXISTS assigned_plate CHARACTER VARYING"))
                 conn.commit()
             print("Direct migration successful.")
         except Exception as e2:
@@ -78,31 +94,69 @@ os.makedirs("relatorios", exist_ok=True)
 app.mount("/reports_files", StaticFiles(directory="relatorios"), name="reports_files")
 
 @app.get("/", response_class=HTMLResponse)
-def read_root(request: Request, db: Session = Depends(get_db)):
+def read_root(
+    request: Request, 
+    start_date: str = None, 
+    end_date: str = None, 
+    vehicle_id: str = None,
+    db: Session = Depends(get_db)
+):
     vehicles_count = db.query(models.Vehicle).count()
     drivers_count = db.query(models.Driver).count()
     shipments_count = db.query(models.Shipment).filter(models.Shipment.status != "Entregue").count()
     latest_shipments = db.query(models.Shipment).order_by(models.Shipment.id.desc()).limit(5).all()
+    vehicles_list = db.query(models.Vehicle).order_by(models.Vehicle.plate).all()
     
-    # Telemetry Stats
-    total_km = db.query(func.sum(models.VehicleTelemetry.route_length)).scalar() or 0
-    avg_fuel_cons = db.query(func.avg(models.VehicleTelemetry.fuel_consumption)).scalar() or 0
+    # Handle empty strings from form
+    if start_date == "": start_date = None
+    if end_date == "": end_date = None
     
-    # New Stats from Consolidated Report
-    total_thefts_vol = db.query(func.sum(models.VehicleTelemetry.theft_volume)).scalar() or 0
-    total_refills_vol = db.query(func.sum(models.VehicleTelemetry.refueling_volume)).scalar() or 0
-    total_thefts_count = db.query(func.sum(models.VehicleTelemetry.theft_count)).scalar() or 0
-    total_refills_count = db.query(func.sum(models.VehicleTelemetry.refueling_count)).scalar() or 0
-    avg_efficiency = db.query(func.avg(models.VehicleTelemetry.fuel_efficiency)).filter(models.VehicleTelemetry.fuel_efficiency > 0).scalar() or 0
+    try:
+        if vehicle_id and vehicle_id != "" and vehicle_id != "None":
+            vehicle_id = int(vehicle_id)
+        else:
+            vehicle_id = None
+    except (ValueError, TypeError):
+        vehicle_id = None
     
-    # Financial loss (estimated US$ 1,20/L)
-    estimated_loss = total_thefts_vol * 1.20
+    # Base Telemetry Query for stats
+    stats_query = db.query(models.VehicleTelemetry)
+    
+    if start_date:
+        stats_query = stats_query.filter(models.VehicleTelemetry.date >= date.fromisoformat(start_date))
+    if end_date:
+        stats_query = stats_query.filter(models.VehicleTelemetry.date <= date.fromisoformat(end_date))
+    if vehicle_id:
+        stats_query = stats_query.filter(models.VehicleTelemetry.vehicle_id == vehicle_id)
+    
+    # Calculate stats one by one to avoid any potential side effects
+    total_km = stats_query.with_entities(func.sum(models.VehicleTelemetry.route_length)).scalar() or 0
+    total_thefts_vol = stats_query.with_entities(func.sum(models.VehicleTelemetry.theft_volume)).scalar() or 0
+    total_refills_vol = stats_query.with_entities(func.sum(models.VehicleTelemetry.refueling_volume)).scalar() or 0
+    total_thefts_count = stats_query.with_entities(func.sum(models.VehicleTelemetry.theft_count)).scalar() or 0
+    total_refills_count = stats_query.with_entities(func.sum(models.VehicleTelemetry.refueling_count)).scalar() or 0
+    
+    # Avg efficiency: needs to filter fuel_efficiency > 0
+    eff_query = stats_query.filter(models.VehicleTelemetry.fuel_efficiency > 0)
+    avg_efficiency = eff_query.with_entities(func.avg(models.VehicleTelemetry.fuel_efficiency)).scalar() or 0
+    
+    # Financial loss (estimated MT 75,00/L)
+    estimated_loss = total_thefts_vol * 75.00
 
     # Critical vehicles (top thefts)
-    critical_vehicles = db.query(
+    critical_query = db.query(
         models.Vehicle.plate, 
         func.sum(models.VehicleTelemetry.theft_volume).label("total_theft")
-    ).join(models.VehicleTelemetry).group_by(models.Vehicle.plate).filter(models.VehicleTelemetry.theft_volume > 0).order_by(text("total_theft DESC")).limit(5).all()
+    ).join(models.VehicleTelemetry).group_by(models.Vehicle.plate)
+    
+    if start_date:
+        critical_query = critical_query.filter(models.VehicleTelemetry.date >= date.fromisoformat(start_date))
+    if end_date:
+        critical_query = critical_query.filter(models.VehicleTelemetry.date <= date.fromisoformat(end_date))
+    if vehicle_id:
+        critical_query = critical_query.filter(models.VehicleTelemetry.vehicle_id == vehicle_id)
+        
+    critical_vehicles = critical_query.filter(models.VehicleTelemetry.theft_volume > 0).order_by(text("total_theft DESC")).limit(5).all()
     
     context = {
         "request": request,
@@ -110,15 +164,20 @@ def read_root(request: Request, db: Session = Depends(get_db)):
         "drivers_count": drivers_count,
         "shipments_count": shipments_count,
         "latest_shipments": latest_shipments,
+        "vehicles_list": vehicles_list,
         "total_km": round(total_km, 2),
-        "avg_fuel": round(avg_fuel_cons, 2),
         "total_thefts_vol": round(total_thefts_vol, 2),
         "total_refills_vol": round(total_refills_vol, 2),
         "total_thefts_count": total_thefts_count,
         "total_refills_count": total_refills_count,
         "avg_efficiency": round(avg_efficiency, 2),
         "estimated_loss": round(estimated_loss, 2),
-        "critical_vehicles": critical_vehicles
+        "critical_vehicles": critical_vehicles,
+        "filters": {
+            "start_date": start_date,
+            "end_date": end_date,
+            "vehicle_id": vehicle_id
+        }
     }
     return templates.TemplateResponse(request=request, name="index.html", context=context)
 
@@ -212,13 +271,15 @@ def ui_drivers(request: Request, db: Session = Depends(get_db)):
 
 @app.post("/ui/drivers")
 def ui_create_driver(
-    name: str = Form(...), cpf: str = Form(...), cnh: str = Form(...), 
+    name: str = Form(...), cnh: str = Form(None), 
     category: str = Form(...), phone: str = Form(...), hire_date: str = Form(...),
+    assigned_plate: str = Form(None),
     db: Session = Depends(get_db)
 ):
     db_driver = models.Driver(
-        name=name, cpf=cpf, cnh=cnh, category=category, 
-        phone=phone, hire_date=date.fromisoformat(hire_date)
+        name=name, cnh=cnh, category=category, 
+        phone=phone, hire_date=date.fromisoformat(hire_date) if hire_date else None,
+        assigned_plate=assigned_plate
     )
     db.add(db_driver)
     db.commit()
@@ -242,15 +303,19 @@ def ui_create_shipment(
     tracking_code: str = Form(...), description: str = Form(None), weight: float = Form(...),
     origin: str = Form(...), destination: str = Form(...), shipping_value: float = Form(...),
     status: str = Form(...), shipment_date: str = Form(...),
-    vehicle_id: int = Form(None), driver_id: int = Form(None),
+    vehicle_id: str = Form(None), driver_id: str = Form(None),
     db: Session = Depends(get_db)
 ):
     try:
+        # Handle empty strings from form
+        v_id = int(vehicle_id) if vehicle_id and vehicle_id != "" else None
+        d_id = int(driver_id) if driver_id and driver_id != "" else None
+
         db_shipment = models.Shipment(
             tracking_code=tracking_code, description=description, weight=weight,
             origin=origin, destination=destination, shipping_value=shipping_value,
             status=status, shipment_date=date.fromisoformat(shipment_date),
-            vehicle_id=vehicle_id, driver_id=driver_id
+            vehicle_id=v_id, driver_id=d_id
         )
         db.add(db_shipment)
         db.commit()
@@ -404,18 +469,19 @@ def ui_delete_vehicle(vehicle_id: int, db: Session = Depends(get_db)):
 @app.post("/ui/drivers/{driver_id}/update")
 def ui_update_driver(
     driver_id: int,
-    name: str = Form(...), cpf: str = Form(...), cnh: str = Form(...), 
+    name: str = Form(...), cnh: str = Form(None), 
     category: str = Form(...), phone: str = Form(...), hire_date: str = Form(...),
+    assigned_plate: str = Form(None),
     db: Session = Depends(get_db)
 ):
     db_driver = db.query(models.Driver).filter(models.Driver.id == driver_id).first()
     if db_driver:
         db_driver.name = name
-        db_driver.cpf = cpf
         db_driver.cnh = cnh
         db_driver.category = category
         db_driver.phone = phone
-        db_driver.hire_date = date.fromisoformat(hire_date)
+        db_driver.hire_date = date.fromisoformat(hire_date) if hire_date else None
+        db_driver.assigned_plate = assigned_plate
         db.commit()
     return RedirectResponse(url="/ui/drivers", status_code=303)
 
@@ -434,11 +500,15 @@ def ui_update_shipment(
     tracking_code: str = Form(...), description: str = Form(None), weight: float = Form(...),
     origin: str = Form(...), destination: str = Form(...), shipping_value: float = Form(...),
     status: str = Form(...), shipment_date: str = Form(...),
-    vehicle_id: int = Form(None), driver_id: int = Form(None),
+    vehicle_id: str = Form(None), driver_id: str = Form(None),
     db: Session = Depends(get_db)
 ):
     db_shipment = db.query(models.Shipment).filter(models.Shipment.id == shipment_id).first()
     if db_shipment:
+        # Handle empty strings from form
+        v_id = int(vehicle_id) if vehicle_id and vehicle_id != "" else None
+        d_id = int(driver_id) if driver_id and driver_id != "" else None
+
         old_status = db_shipment.status
         db_shipment.tracking_code = tracking_code
         db_shipment.description = description
@@ -448,8 +518,8 @@ def ui_update_shipment(
         db_shipment.shipping_value = shipping_value
         db_shipment.status = status
         db_shipment.shipment_date = date.fromisoformat(shipment_date)
-        db_shipment.vehicle_id = vehicle_id
-        db_shipment.driver_id = driver_id
+        db_shipment.vehicle_id = v_id
+        db_shipment.driver_id = d_id
         
         # If status changed, record it in history
         if old_status != status:

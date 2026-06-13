@@ -37,11 +37,11 @@ class Vehicle(VehicleBase):
 # Driver Schemas
 class DriverBase(BaseModel):
     name: str
-    cpf: str
     cnh: str
     category: str
     phone: str
     hire_date: date
+    assigned_plate: Optional[str] = None
 
 class DriverCreate(DriverBase):
     pass

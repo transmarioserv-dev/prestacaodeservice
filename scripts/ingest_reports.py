@@ -173,9 +173,15 @@ def main():
             if date_match:
                 file_date = date(int(date_match.group(1)), int(date_match.group(2)), int(date_match.group(3)))
             else:
-                # Default to June 7, 2026 for files in "dia 7" if no date found
+                # Default dates based on folder names if no date found in filename
                 if "dia 7" in root:
                     file_date = date(2026, 6, 7)
+                elif "dia 9" in root:
+                    file_date = date(2026, 6, 9)
+                elif "dia_10" in root or "10" in root:
+                    file_date = date(2026, 6, 10)
+                elif "dia_11" in root or "11" in root:
+                    file_date = date(2026, 6, 11)
                 else:
                     continue
 
@@ -194,8 +200,9 @@ def main():
                     print(f"Error parsing {file_path}: {e}")
             
             elif file.endswith(".xlsx"):
-                # TODO: Implement XLSX ingestion if needed
-                pass
+                from app.utils import ingest_drivers_xlsx
+                print(f"Ingesting Excel report: {file}")
+                ingest_drivers_xlsx(file_path, db)
 
     db.close()
 

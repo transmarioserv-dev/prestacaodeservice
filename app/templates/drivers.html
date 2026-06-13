@@ -20,8 +20,8 @@
                 <thead class="table-light">
                     <tr>
                         <th>Nome</th>
-                        <th>CPF</th>
                         <th>CNH</th>
+                        <th>Viatura</th>
                         <th>Categoria</th>
                         <th>Telefone</th>
                         <th>Admissão</th>
@@ -32,8 +32,14 @@
                     {% for driver in drivers %}
                     <tr>
                         <td><strong>{{ driver.name }}</strong></td>
-                        <td>{{ driver.cpf }}</td>
                         <td>{{ driver.cnh }}</td>
+                        <td>
+                            {% if driver.assigned_plate %}
+                            <span class="badge bg-danger">{{ driver.assigned_plate }}</span>
+                            {% else %}
+                            <span class="text-muted small">Nenhuma</span>
+                            {% endif %}
+                        </td>
                         <td><span class="badge bg-dark">{{ driver.category }}</span></td>
                         <td>{{ driver.phone }}</td>
                         <td>{{ driver.hire_date }}</td>
@@ -63,12 +69,8 @@
                                                         <input type="text" name="name" class="form-control" value="{{ driver.name }}" required>
                                                     </div>
                                                     <div class="col-md-6">
-                                                        <label class="form-label">CPF</label>
-                                                        <input type="text" name="cpf" class="form-control" value="{{ driver.cpf }}" required>
-                                                    </div>
-                                                    <div class="col-md-6">
                                                         <label class="form-label">CNH</label>
-                                                        <input type="text" name="cnh" class="form-control" value="{{ driver.cnh }}" required>
+                                                        <input type="text" name="cnh" class="form-control" value="{{ driver.cnh }}">
                                                     </div>
                                                     <div class="col-md-6">
                                                         <label class="form-label">Categoria CNH</label>
@@ -81,6 +83,10 @@
                                                             <option value="AD" {% if driver.category == 'AD' %}selected{% endif %}>AD</option>
                                                             <option value="AE" {% if driver.category == 'AE' %}selected{% endif %}>AE</option>
                                                         </select>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Viatura (Placa)</label>
+                                                        <input type="text" name="assigned_plate" class="form-control" value="{{ driver.assigned_plate }}">
                                                     </div>
                                                     <div class="col-md-6">
                                                         <label class="form-label">Telefone</label>
@@ -132,12 +138,8 @@
                             <input type="text" name="name" class="form-control" required>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">CPF</label>
-                            <input type="text" name="cpf" class="form-control" placeholder="000.000.000-00" required>
-                        </div>
-                        <div class="col-md-6">
                             <label class="form-label">CNH</label>
-                            <input type="text" name="cnh" class="form-control" required>
+                            <input type="text" name="cnh" class="form-control">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Categoria CNH</label>
@@ -150,6 +152,10 @@
                                 <option value="AD">AD</option>
                                 <option value="AE">AE</option>
                             </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Viatura (Placa)</label>
+                            <input type="text" name="assigned_plate" class="form-control" placeholder="ABC-123-XY">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Telefone</label>
